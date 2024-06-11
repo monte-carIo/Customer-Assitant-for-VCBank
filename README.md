@@ -7,7 +7,7 @@ Follow these step for your own installation:
 |---...
 |---data
     |---dbv3
-    |---mdoel
+    |---model
     |---...
 ```
 2. Setup environment:
