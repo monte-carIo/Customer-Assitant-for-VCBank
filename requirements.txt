@@ -9,4 +9,4 @@ gpt4all
 faiss-cpu
 openai
 gradio
-llama-cpp-python
+google-generativeai

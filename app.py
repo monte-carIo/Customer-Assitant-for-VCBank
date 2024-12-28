@@ -7,7 +7,6 @@ from langchain.docstore.document import Document
 import gradio as gr
 import time
 # from functools import lru_cache
-from llama_cpp import Llama
 import pandas as pd
 import argparse
 
@@ -27,18 +26,10 @@ model_path = args.model_path
 embedding_path = args.embedding_path
 vector_db_path = args.vector_db_path
 
-# model_path = "./model/vinallama-7b-chat_q5_0.gguf"
+import google.generativeai as genai
 
-
-# Load model and database once at startup
-# llm = CTransformers(
-#     model=model_path,
-#     model_type="llama",
-#     temperature=0.25,
-#     streaming=True
-# )
-llm = Llama(model_path=model_path,
-            n_gpu_layers=1, n_ctx=4096)
+genai.configure(api_key="AIzaSyDZCcBOc7wlMVOK29k5eGXxw2w-iUtwQ1k")
+model = genai.GenerativeModel("gemini-1.5-flash")
 
 embedding_model = GPT4AllEmbeddings(
     model_name=embedding_path,
@@ -88,7 +79,7 @@ def handle_user_input(message, history):
         print(context_text)
         print(f'score: {[score for _doc, score in results]}')
         response_text = ""
-        output = llm.create_completion(prompt, max_tokens=500, stop=["<|im_end|>"], stream=True)
+        output = model.generate_content(prompt)
         for token in output:
             # breakpoint()
             response_text += token["choices"][0]["text"]
@@ -103,10 +94,9 @@ def handle_user_input(message, history):
         context_text = "\n\n---\n\n".join([doc.page_content for doc, _score in results])
         prompt = prompt_template.format(context=context_text, question=message)
         response_text = ""
-        output = llm.create_completion(prompt, max_tokens=500, stop=["<|im_end|>"], stream=True)
-        for token in output:
-            response_text += token["choices"][0]["text"]
-            yield response_text
+        output = model.generate_content(prompt)
+        response_text = output.text
+        yield response_text
         if args.history:
             add_to_vector_db(db, message, response_text)
 
@@ -137,9 +127,6 @@ theme = gr.themes.Default(
     input_shadow_focus_dark='*input_shadow',
     stat_background_fill='*primary_300',
     stat_background_fill_dark='*primary_500',
-    button_shadow='none',
-    button_shadow_active='none',
-    button_shadow_hover='none',
     button_transition='background-color 0.2s ease',
     button_primary_background_fill='*primary_200',
     button_primary_background_fill_dark='*primary_700',
@@ -168,10 +155,6 @@ interface = gr.ChatInterface(
     # theme="soft",
     theme=theme,
     examples=["Bạn là ai","Tôi có thể liên kết bao nhiêu thẻ VCB trên Ứng dụng MOCA?", "Tôi có nhất thiết phải sử dụng Cookies cho trình duyệt hay không?"],
-    cache_examples=True,
-    retry_btn=None,
-    undo_btn="Delete Previous",
-    clear_btn="Clear",
 ).launch()
 
 # Launch the Gradio interface
